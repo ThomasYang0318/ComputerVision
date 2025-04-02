@@ -2,10 +2,6 @@ import cv2
 import numpy as np
 import math
 
-""" is_corner(image, p, t)
-    image: 整張灰階圖片 (NumPy 2D array) , p: (x, y) 座標 (tuple) , t: 亮度差異閾值 (int)
-    回傳: True 或 False
-"""
 def is_corner(image, p, t, n):
     r = 3 # 半徑(論文設定的)
     num_points = 16 # 圓周點數(360度分16塊較合適)
@@ -62,14 +58,21 @@ def is_corner(image, p, t, n):
 # 讀取圖片（灰階模式）
 image = cv2.imread('image.png', cv2.IMREAD_GRAYSCALE)
 
-# 檢查是否讀取成功
-if image is None:
-    print("圖片讀取失敗！請檢查檔名或路徑")
-else:
-    # 顯示圖片
-    cv2.imshow('Test Image', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# 轉成彩色，方便畫紅色圈圈
+output = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-result = is_corner(image, (50, 50), 10, 9)
-print("該點是否為角點:", result)
+# 參數設定
+t = 20  # 亮度差異閾值
+n = 9 # 判斷角點條件
+
+# 遍歷影像中每個像素
+for y in range(3, image.shape[0] - 3):  # 留邊界
+    for x in range(3, image.shape[1] - 3):
+        if is_corner(image, (x, y), t, n):
+            # 畫紅色小圈圈
+            cv2.circle(output, (x, y), 1, (0, 0, 255), -1)
+
+# 顯示結果
+cv2.imshow('Corners', output)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
