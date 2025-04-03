@@ -98,6 +98,7 @@ def detect_corners_in_pyramid(pyramid, t, n, scale_factor):
 
     return all_keypoints
 
+"""" O(N ** 2) -> 角點太會太慢
 def NMS(all_keypoints, r):
     final_keypoints = set()
 
@@ -114,6 +115,23 @@ def NMS(all_keypoints, r):
             final_keypoints.add((x, y))
 
     return final_keypoints
+"""
+
+# Grid NMS 改善為O(N)
+def grid_NMS(all_keypoints, cell_size):
+    grid = {}
+
+    for x, y in all_keypoints:
+        cell_x = x // cell_size
+        cell_y = y // cell_size
+        cell_coord = (cell_x, cell_y)
+
+        if cell_coord not in grid:
+            grid[cell_coord] = (x, y)  # 該區域第一次出現 → 存入
+
+    final_keypoints = list(grid.values())
+    return final_keypoints
+
 
 # 讀取圖片（灰階模式）
 image = cv2.imread('image.png', cv2.IMREAD_GRAYSCALE)
@@ -124,10 +142,10 @@ scale_factor = 0.5  # scale_factor: 縮小倍率
 pyramid = build_pyramid(image, num_levels, scale_factor)
 
 # 角點參數設定 
-t = 10 # t: 亮度差異閾值
+t = 20 # t: 亮度差異閾值
 n = 9 # n: 判斷角點條件
 keypoints = detect_corners_in_pyramid(pyramid, t, n, scale_factor)
-keypoints_nms = NMS(keypoints, r = 3)
+keypoints_nms = grid_NMS(keypoints, cell_size = 3)
 
 # 轉成彩色，方便畫紅色圈圈(0, 0, 255)(B, G, R)
 output = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
