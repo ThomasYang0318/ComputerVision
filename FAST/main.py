@@ -33,8 +33,8 @@ def is_corner(image, p, t, n):
         else:
             status_array.append(0)
 
-    extended_array = status_array + status_array
-
+    extended_array = np.concatenate([status_array, status_array])
+    """
     count_positive = 0
     count_negative = 0
 
@@ -51,8 +51,15 @@ def is_corner(image, p, t, n):
 
         if count_positive >= n or count_negative >= n:
             return True
-    
+    """
+    # 加速
+    mask_pos = (extended_array == 1).astype(int) # astype(int) : True/False → 0/1
+    mask_neg = (extended_array == -1).astype(int) 
+    count_positive = np.convolve(mask_pos, np.ones(n), mode='valid') # np.convolve(要計算的資料, 權重（np.one(n) -> n個1）, valid:視窗完全覆蓋時)
+    count_negative = np.convolve(mask_neg, np.ones(n), mode='valid')
 
+    if np.any(count_positive == n) or np.any(count_negative == n):
+            return True
     return False
 
 def detect_corners_in_image(image, t, n):
@@ -155,4 +162,3 @@ for x, y in keypoints_nms:
 cv2.imshow('NMS Pyramid Corners', output)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-
