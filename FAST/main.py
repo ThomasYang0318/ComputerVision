@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import os
 
 def is_corner(image, p, t, n):
     r = 3 # 半徑(論文設定的)
@@ -140,25 +141,42 @@ def grid_NMS(all_keypoints, cell_size):
     return final_keypoints
 
 
-# 讀取圖片（灰階模式）
-image = cv2.imread('image.png', cv2.IMREAD_GRAYSCALE)
+# ===== Main =================================================================
+if __name__ == "__main__":
+    image_path = "../experiment_dataset/brisk_vs_fast_test.png"
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        print("無法讀取圖片，請檢查路徑:", image_path)
+        exit(1)
 
-# Scale-Space參數設定 
-num_levels = 4      # num_levels: 金字塔層數 
-scale_factor = 0.5  # scale_factor: 縮小倍率
-pyramid = build_pyramid(image, num_levels, scale_factor)
+    t_values = [5, 10, 20]
+    n_values = [9, 12]
+    output_dir = "output_compare_pyramid"
+    os.makedirs(output_dir, exist_ok=True)
 
-# 角點參數設定 
-t = 20 # t: 亮度差異閾值
-n = 9 # n: 判斷角點條件
-keypoints = detect_corners_in_pyramid(pyramid, t, n, scale_factor)
-keypoints_nms = grid_NMS(keypoints, cell_size = 3)
+    # 無金字塔版本
+    for t in t_values:
+        for n in n_values:
+            keypoints = detect_corners_in_image(image, t, n)
+            keypoints_nms = grid_NMS(keypoints, cell_size=3)
+            color_img = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            for (x, y) in keypoints_nms:
+                cv2.circle(color_img, (x, y), 1, (0, 0, 255), -1)
+            count = len(keypoints_nms)
+            filename = f"{output_dir}/NoPyramid_t{t}_n{n}_{count}.png"
+            cv2.imwrite(filename, color_img)
+            print(f"Saved: {filename} ({count} pts)")
 
-# 轉成彩色，方便畫紅色圈圈(0, 0, 255)(B, G, R)
-output = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-for x, y in keypoints_nms:
-    cv2.circle(output, (x, y), 1, (0, 0, 255), -1)
-
-cv2.imshow('NMS Pyramid Corners', output)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    # 有金字塔版本
+    pyramid = build_pyramid(image, num_levels=4, scale_factor=0.5)
+    for t in t_values:
+        for n in n_values:
+            keypoints = detect_corners_in_pyramid(pyramid, t, n, scale_factor=0.5)
+            keypoints_nms = grid_NMS(keypoints, cell_size=3)
+            color_img = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            for (x, y) in keypoints_nms:
+                cv2.circle(color_img, (x, y), 1, (0, 0, 255), -1)
+            count = len(keypoints_nms)
+            filename = f"{output_dir}/Pyramid_t{t}_n{n}_{count}.png"
+            cv2.imwrite(filename, color_img)
+            print(f"Saved: {filename} ({count} pts)")
